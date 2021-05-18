@@ -499,3 +499,11 @@ Note that the forms of `malloc` and `free` are different than as per C, as this 
   + Memory leaks (a block of memory is `malloc`ed, but never `free`d)
   + Double free (`free` is called on the same block of memory twice)
   + Reference invalidation, such as a pointer to partway in an array that's been resized and thus freed
+
+## Summary
+
++ The Data Segment is used for storing global variables
++ The Stack is used for storing local variables, function arguments, and return addresses (in some calling conventions)
++ The Heap is used for dyamic arrays, large object, and objects that should persist after the function returns
++ Stack frames are automatically "deallocated" by incrementing the stack pointer
++ Heap blocks must be manually freed
