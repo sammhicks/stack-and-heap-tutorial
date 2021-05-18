@@ -342,22 +342,143 @@ The memory layout is thus as follows
 The heap is a *significantly* more complex data structure that the stack, and I'll gloss over the details on how and where blocks are allocated, how the cleanup works, etc, as there are several algorithms and methods of heap allocation that perform best is different circumstances.
 I'll just talk about how the heap is used, and its strengths and shortcomings.
 
-### Malloc and free
+    int* get_list() {
+        int* list;
+        list = malloc(3);
+        list[0] = 2;
+        list[1] = 5;
+        list[2] = 8;
+        return list;
+    }
 
-To manage the heap, there are two library calls: `malloc` and `free`
+    void print_list(int* list) {
+        printf("0 => %d", list[0]);
+        printf("1 => %d", list[1]);
+        printf("2 => %d", list[2]);
+    }
 
-#### Malloc
+    void main() {
+        int* list;
+        list = get_list();
+        print_list(list);
+        free(list);
+    }
 
-`int* malloc(int size)` allocates a new contiguous block of memory on the heap of size `size`.
-From the caller's perspective, it's a function call like any other, and thus a local variable (stored on the stack) is given a value of the address in memory where this new memory block has been allocated.
+At the start of `main`, the memory layout is as follows:
 
-This memory address can be dereferences like any other pointer, and the nth entry in the block can be accessed by doing standard pointer arithmetic.
+|       Address |          Variable |
+| ------------: | ----------------: |
+| SR = FR = 256 | \<end of memory\> |
+|           255 |                 ? |
+|           254 |                 ? |
+|           ... |                 ? |
 
-#### Free
+    int* list;
 
-`void free(int* start)` is the counterpart to `int* malloc(int size)`. It frees a block of memory, starting at `start`, that has been prevously allocated. If this pointer does not point to the start of a heap block, an error is typically raised.
+|  Address |          Variable |
+| -------: | ----------------: |
+| FR = 256 | \<end of memory\> |
+| SR = 255 |          list = ? |
+|      254 |                 ? |
+|      ... |                 ? |
 
-#### This machine vs C
+    list = get_list();
+
+|  Address |           Variable |
+| -------: | -----------------: |
+| FR = 256 |  \<end of memory\> |
+| SR = 255 |           list = ? |
+|      254 |                256 |
+|      253 |                  ? |
+|      252 | \<return address\> |
+
+Only one memory value is reserved, as the return value is a `int*` which is one memory value large.
+
+|       Address |           Variable |
+| ------------: | -----------------: |
+|           256 |  \<end of memory\> |
+|           255 |           list = ? |
+|           254 |                256 |
+|           253 |                  ? |
+| SR = FR = 252 | \<return address\> |
+
+    int* list;
+
+|  Address |           Variable |
+| -------: | -----------------: |
+|      256 |  \<end of memory\> |
+|      255 |           list = ? |
+|      254 |                256 |
+|      253 |                  ? |
+| FR = 252 | \<return address\> |
+| SR = 251 |           list = ? |
+
+list is a single value, so one value of memory is reserved.
+
+    list = malloc(3);
+
+Malloc is a system call which reserves a section *somewhere* on the heap.
+The library manages the heap, and I'll gloss over it.
+For this demo, let's say that the heap starts at address 128.
+
+|  Address |           Variable |
+| -------: | -----------------: |
+|      256 |  \<end of memory\> |
+|      255 |                  ? |
+|      254 |                256 |
+|      253 |                  ? |
+| FR = 252 | \<return address\> |
+| SR = 251 |         list = 128 |
+|      ... |                  ? |
+|      130 |                  ? |
+|      129 |                  ? |
+|      128 |                  ? |
+
+    list[0] = 2;
+    list[1] = 5;
+    list[2] = 8;
+
+|  Address |           Variable |
+| -------: | -----------------: |
+|      256 |  \<end of memory\> |
+|      255 |           list = ? |
+|      254 |                256 |
+|      253 |                  ? |
+| FR = 252 | \<return address\> |
+| SR = 251 |         list = 128 |
+|      ... |                  ? |
+|      130 |                  8 |
+|      129 |                  5 |
+|      128 |                  2 |
+
+    return list;
+
+|  Address |          Variable |
+| -------: | ----------------: |
+| FR = 256 | \<end of memory\> |
+| SR = 255 |        list = 128 |
+|      ... |                 ? |
+|      130 |                 8 |
+|      129 |                 5 |
+|      128 |                 2 |
+
+The function returns, the stack pointer and frame pointer and restored, and the return value is written to the address of list. Note that the heap allocation persists, and although the function "returns" an array of three items, only one memory value is copied.
+
+    print_list(list);
+
+Similarly, when making the call to `void print_list(int* list)`, only one memory value is copied.
+
+    free(list);
+
+|  Address |          Variable |
+| -------: | ----------------: |
+| FR = 256 | \<end of memory\> |
+| SR = 255 |        list = 128 |
+|      ... |                 ? |
+
+The heap entry is deallocated. Note that `list` still points to address 128, but trying to dereference it could lead to a system crash or memory corruption. For safely, most programs will set a pointer to 0 after freeing it's heap block. However, that doesn't stop other pointer from pointing to its block...
+
+### This machine vs C
 
 Note that the forms of `malloc` and `free` are different than as per C, as this simplified system has fewer data types, as explained at the start of this document.
 
