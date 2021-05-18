@@ -18,14 +18,16 @@ Also:
 The Data Segment stores global variables, and the allocation is chosen by the compiler, i.e. each differently named variable is given a different memory address.
 
 
-    int a, b, c;
+```C
+int a, b, c;
 
-    void main() {
-        a = 1;
-        b = 2;
-        c = a + b;
-        printf("%d + %d = %d", a, b, c);
-    }
+void main() {
+    a = 1;
+    b = 2;
+    c = a + b;
+    printf("%d + %d = %d", a, b, c);
+}
+```
 
 The memory layout is thus as follows:
 
@@ -43,27 +45,29 @@ Note that:
 
 This also means that recursive functions are impossible.
 
-    int a, b, c;
+```C
+int a, b, c;
 
-    void set_a() {
-        a = 1;
-    }
+void set_a() {
+    a = 1;
+}
 
-    void set_b() {
-        b = 2;
-    }
+void set_b() {
+    b = 2;
+}
 
-    void corrupt_data() {
-        a = 6;
-        b = 8;
-    }
+void corrupt_data() {
+    a = 6;
+    b = 8;
+}
 
-    void main() {
-        set_a();
-        set_b();
-        corrupt_data();
-        printf("%d + %d = %d", a, b, c);
-    }
+void main() {
+    set_a();
+    set_b();
+    corrupt_data();
+    printf("%d + %d = %d", a, b, c);
+}
+```
 
 As such, another memory region is declared: the stack
 
@@ -81,36 +85,38 @@ In the following examples, I'll assume that the total memory size is 256 `int`s.
 
 The stack stores function parameters, function return values, and local variables.
 
-    int get_a() {
-        return 2;
-    }
+```C
+int get_a() {
+    return 2;
+}
 
-    int get_b() {
-        return 5;
-    }
+int get_b() {
+    return 5;
+}
 
-    int get_c() {
-        return 8;
-    }
+int get_c() {
+    return 8;
+}
 
-    int add_two_numbers(int a, int b) {
-        int c;
-        c = a + b;
-        return c;
-    }
+int add_two_numbers(int a, int b) {
+    int c;
+    c = a + b;
+    return c;
+}
 
-    void main() {
-        int a, b, c, total;
+void main() {
+    int a, b, c, total;
 
-        a = get_a();
-        b = get_b();
-        c = get_c();
+    a = get_a();
+    b = get_b();
+    c = get_c();
 
-        total = add_two_numbers(a, b);
-        total = add_two_numbers(total, c);
+    total = add_two_numbers(a, b);
+    total = add_two_numbers(total, c);
 
-        printf("%d + %d + %d = %d", a, b, c, total);
-    }
+    printf("%d + %d + %d = %d", a, b, c, total);
+}
+```
 
 At the start of `main`, the memory layout is as follows:
 
@@ -205,8 +211,8 @@ Then the return value (found at `SR - 2`) is stored as "a" (found at `SR + 0`)
 |      251 |               256 |
 |      250 |                 2 |
 
-        b = get_b();
-        c = get_c();
+    b = get_b();
+    c = get_c();
 
 Similarly, `get_b()` and `get_c()` are called.
 
